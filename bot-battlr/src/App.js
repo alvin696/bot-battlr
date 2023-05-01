@@ -3,8 +3,8 @@ import BotCollection from "./botcollection";
 import YourBotArmy from "./yourbotarmy";
 import BotSpecs from "./botspecs";
 import SortBar from "./sortbar";
- // eslint-disable-next-line
 import axios from 'axios';
+import './index.css'; // import the CSS file
 
 class App extends Component {
   constructor(props) {
@@ -15,7 +15,8 @@ class App extends Component {
       army: [],
       selectedBot: null,
       sortBy: null,
-      filterBy: null
+      filterBy: null,
+      enlistedClasses: new Set()
     };
   }
 
@@ -26,17 +27,32 @@ class App extends Component {
       .then(response => this.setState({ bots: response.data }))
       .catch(error => console.log(error));
   }
+
   selectBot = (bot) => {
     this.setState({ selectedBot: bot });
   }
 
-  addToArmy = (bot) => {
+  enlistBot = (bot) => {
     if (this.state.army.length >= 5) {
       alert("You can only have 5 bots in your army!");
       return;
     }
 
-    this.setState({ army: [...this.state.army, bot] });
+    if (this.state.enlistedClasses.has(bot.class)) {
+      alert(`You can only have one ${bot.class} bot in your army!`);
+      return;
+    }
+
+    const newBots = this.state.bots.filter(b => b.id !== bot.id);
+    const newArmy = [...this.state.army, bot];
+    const newEnlistedClasses = new Set(this.state.enlistedClasses);
+    newEnlistedClasses.add(bot.class);
+
+    this.setState({
+      bots: newBots,
+      army: newArmy,
+      enlistedClasses: newEnlistedClasses
+    });
   }
 
   removeFromArmy = (bot) => {
@@ -44,7 +60,12 @@ class App extends Component {
     if (index !== -1) {
       const newArmy = [...this.state.army];
       newArmy.splice(index, 1);
-      this.setState({ army: newArmy });
+      const newEnlistedClasses = new Set(this.state.enlistedClasses);
+      newEnlistedClasses.delete(bot.class);
+      this.setState({
+        army: newArmy,
+        enlistedClasses: newEnlistedClasses
+      });
     }
   }
 
@@ -54,6 +75,10 @@ class App extends Component {
 
   filterBots = (filterBy) => {
     this.setState({ filterBy });
+  }
+
+  backToBotCollection = () => {
+    this.setState({ selectedBot: null });
   }
 
   render() {
@@ -70,22 +95,27 @@ class App extends Component {
 
     return (
       <div className="App">
-        <SortBar sortBots={this.sortBots} filterBots={this.filterBots} />
-        <div className="container">
-          <div className="row">
-            <div className="col-6">
-              <BotCollection bots={filteredBots} selectBot={this.selectBot} />
-            </div>
-            <div className="col-6">
-              <YourBotArmy army={army} removeFromArmy={this.removeFromArmy} />
+        {selectedBot === null ?
+          <div>
+            <SortBar sortBots={this.sortBots} filterBots={this.filterBots} />
+            <div className="container">
+              <div className="row">
+                <div className="col-6">
+                  <BotCollection bots={filteredBots} selectBot={this.selectBot} enlistBot={this.enlistBot} />
+                </div>
+                <div className="col-6">
+                  <YourBotArmy army={army} removeFromArmy={this.removeFromArmy} />
+                </div>
+              </div>
             </div>
           </div>
+          :
+          // eslint-disable-next-line no-whitespace-before-property
+          <BotSpecs bot={selectedBot} backToBotCollection={this.backToBotCollection} enlistBot={this .enlistBot} />
+        }
         </div>
-        {selectedBot !== null && <BotSpecs bot={selectedBot} addToArmy={this.addToArmy} />}
-      </div>
-    );
-  }
-}
-
-export default App;
-
+        );
+        }
+        }
+        
+        export default App;
